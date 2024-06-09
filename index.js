@@ -1,16 +1,13 @@
 require('dotenv').config();
 const twilio = require('twilio');
 const axios = require('axios');
+const express = require('express');
+const bodyParser = require('body-parser');
 
-// Verify environment variables are loaded correctly
-console.log('TWILIO_ACCOUNT_SID:', process.env.TWILIO_ACCOUNT_SID);
-console.log('TWILIO_AUTH_TOKEN:', process.env.TWILIO_AUTH_TOKEN);
-console.log('TWILIO_API_KEY:', process.env.TWILIO_API_KEY);
-console.log('TWILIO_API_SECRET:', process.env.TWILIO_API_SECRET);
-console.log('TWILIO_WHATSAPP_NUMBER:', process.env.TWILIO_WHATSAPP_NUMBER);
-console.log('API_KEY:', process.env.API_KEY);
+const app = express();
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
-// Retrieve Twilio credentials from environment variables
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const apiKey = process.env.TWILIO_API_KEY;
 const apiSecret = process.env.TWILIO_API_SECRET;
@@ -38,5 +35,27 @@ async function sendStockAlert() {
   }
 }
 
-// Call the function to send a stock alert
-sendStockAlert();
+// Endpoint to handle incoming messages
+app.post('/incoming', (req, res) => {
+  const message = req.body.Body.trim().toLowerCase();
+  
+  if (message === 'stock') {
+    sendStockAlert().then(() => {
+      res.send('<Response><Message>Stock alert sent!</Message></Response>');
+    }).catch(error => {
+      res.send('<Response><Message>Error sending stock alert.</Message></Response>');
+    });
+  } else {
+    res.send('<Response><Message>Unknown command.</Message></Response>');
+  }
+});
+
+// Endpoint to handle status callbacks
+app.post('/status', (req, res) => {
+  console.log('Message status:', req.body);
+  res.sendStatus(200);
+});
+
+app.listen(3000, () => {
+  console.log('Server is running on port 3000');
+});
